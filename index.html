@@ -1,0 +1,356 @@
+```html
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>CenoCup Legends</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+
+body{
+background:#001035;
+color:white;
+font-family:Arial;
+padding:20px;
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+margin-top:20px;
+}
+
+td,th{
+border:1px solid #333;
+padding:8px;
+text-align:center;
+}
+
+th{
+background:#002d72;
+}
+
+.tabs{
+margin-bottom:20px;
+}
+
+button{
+padding:10px;
+margin:3px;
+cursor:pointer;
+}
+
+.tab{
+display:none;
+}
+
+.active{
+display:block;
+}
+
+img.escudo{
+width:28px;
+height:28px;
+border-radius:50%;
+margin-right:6px;
+vertical-align:middle;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<h2>CENOCUP LEGENDS</h2>
+
+<div class="tabs">
+
+<button onclick="showTab('tabela')">Tabela</button>
+<button onclick="showTab('desempenho')">Desempenho</button>
+<button onclick="showTab('graficos')">Gráficos</button>
+<button onclick="showTab('bolaouro')">Bola de Ouro</button>
+<button onclick="showTab('artilheiros')">Artilheiros</button>
+<button onclick="showTab('prob')">Prob Campeão</button>
+
+</div>
+
+
+<div id="tabela" class="tab active">
+<h3>Tabela</h3>
+<table id="table"></table>
+</div>
+
+
+<div id="desempenho" class="tab">
+<h3>Desempenho</h3>
+<table id="desempenhoTable"></table>
+</div>
+
+
+<div id="graficos" class="tab">
+<h3>Gráfico de Pontos</h3>
+<canvas id="grafico"></canvas>
+</div>
+
+
+<div id="bolaouro" class="tab">
+<h3>Bola de Ouro</h3>
+<div id="bola"></div>
+</div>
+
+
+<div id="artilheiros" class="tab">
+<h3>Artilheiros</h3>
+<div id="art"></div>
+</div>
+
+
+<div id="prob" class="tab">
+<h3>Probabilidade de Campeão</h3>
+<div id="probTable"></div>
+</div>
+
+
+<script>
+
+const escudos={
+"Carlos":"escudos/carlos.png",
+"Joao":"escudos/joao.png",
+"Pedro":"escudos/pedro.png",
+"Lucas":"escudos/lucas.png"
+}
+
+function getEscudo(n){
+return escudos[n] || "escudos/default.png"
+}
+
+let db=[
+
+{tecnico:"Carlos",v:5,e:1,d:1,gp:14,gc:6,art:8},
+
+{tecnico:"Joao",v:4,e:2,d:1,gp:10,gc:7,art:6},
+
+{tecnico:"Pedro",v:2,e:2,d:3,gp:7,gc:10,art:4},
+
+{tecnico:"Lucas",v:1,e:1,d:5,gp:5,gc:13,art:2}
+
+]
+
+function pontos(j){
+return j.v*3+j.e
+}
+
+function jogos(j){
+return j.v+j.e+j.d
+}
+
+function showTab(id){
+
+document.querySelectorAll(".tab").forEach(t=>{
+t.classList.remove("active")
+})
+
+document.getElementById(id).classList.add("active")
+
+}
+
+function renderTabela(){
+
+let sorted=[...db].sort((a,b)=>pontos(b)-pontos(a))
+
+let html=`<tr>
+<th>#</th>
+<th>Técnico</th>
+<th>J</th>
+<th>PTS</th>
+<th>V</th>
+<th>E</th>
+<th>D</th>
+<th>GP</th>
+<th>GC</th>
+</tr>`
+
+sorted.forEach((j,i)=>{
+
+html+=`
+<tr>
+<td>${i+1}</td>
+
+<td>
+<img class="escudo" src="${getEscudo(j.tecnico)}">
+${j.tecnico}
+</td>
+
+<td>${jogos(j)}</td>
+<td>${pontos(j)}</td>
+<td>${j.v}</td>
+<td>${j.e}</td>
+<td>${j.d}</td>
+<td>${j.gp}</td>
+<td>${j.gc}</td>
+
+</tr>
+`
+
+})
+
+document.getElementById("table").innerHTML=html
+
+}
+
+function renderGrafico(){
+
+let nomes=db.map(j=>j.tecnico)
+let pts=db.map(j=>pontos(j))
+
+const ctx=document.getElementById("grafico")
+
+new Chart(ctx,{
+type:"bar",
+data:{
+labels:nomes,
+datasets:[{
+label:"Pontos",
+data:pts
+}]
+},
+options:{
+plugins:{legend:{display:false}}
+}
+})
+
+}
+
+function renderBolaOuro(){
+
+let rank=db.map(j=>{
+
+let score=
+(j.v*3)+
+(j.e)+
+(j.gp*0.5)-
+(j.gc*0.3)
+
+return{
+nome:j.tecnico,
+score:score
+}
+
+})
+
+rank.sort((a,b)=>b.score-a.score)
+
+document.getElementById("bola").innerHTML=
+`
+🥇 ${rank[0].nome}<br>
+🥈 ${rank[1].nome}<br>
+🥉 ${rank[2].nome}
+`
+
+}
+
+function renderArtilheiros(){
+
+let sorted=[...db].sort((a,b)=>b.art-a.art)
+
+let html=""
+
+sorted.forEach(j=>{
+html+=`⚽ ${j.tecnico} - ${j.art} gols<br>`
+})
+
+document.getElementById("art").innerHTML=html
+
+}
+
+function renderProb(){
+
+let dados=db.map(j=>{
+
+let score=pontos(j)+(j.gp-j.gc)*0.7
+
+return{
+nome:j.tecnico,
+score
+}
+
+})
+
+let total=dados.reduce((s,x)=>s+x.score,0)
+
+let html=""
+
+dados.forEach(d=>{
+
+let p=((d.score/total)*100).toFixed(1)
+
+html+=`${d.nome} - ${p}%<br>`
+
+})
+
+document.getElementById("probTable").innerHTML=html
+
+}
+
+function renderDesempenho(){
+
+let stats=db.map(j=>{
+
+let jg=jogos(j)
+
+return{
+
+nome:j.tecnico,
+ataque:j.gp/jg,
+defesa:j.gc/jg,
+v:j.v/jg,
+e:j.e/jg,
+d:j.d/jg
+
+}
+
+})
+
+let melhorAtaque=[...stats].sort((a,b)=>b.ataque-a.ataque)[0]
+let melhorDefesa=[...stats].sort((a,b)=>a.defesa-b.defesa)[0]
+let piorDefesa=[...stats].sort((a,b)=>b.defesa-a.defesa)[0]
+let piorAtaque=[...stats].sort((a,b)=>a.ataque-b.ataque)[0]
+
+let maisEmpate=[...stats].sort((a,b)=>b.e-a.e)[0]
+let maisDerrota=[...stats].sort((a,b)=>b.d-a.d)[0]
+let maisVitoria=[...stats].sort((a,b)=>b.v-a.v)[0]
+
+document.getElementById("desempenhoTable").innerHTML=
+
+`
+<tr><th>Categoria</th><th>Técnico</th></tr>
+
+<tr><td>🚜 Rolo Compressor</td><td>${melhorAtaque.nome}</td></tr>
+<tr><td>🧱 Muro de Berlin</td><td>${melhorDefesa.nome}</td></tr>
+<tr><td>🧻 Defesa de Papel</td><td>${piorDefesa.nome}</td></tr>
+<tr><td>🐢 Ataque de Tartaruga</td><td>${piorAtaque.nome}</td></tr>
+<tr><td>🤝 Mais Empates</td><td>${maisEmpate.nome}</td></tr>
+<tr><td>❌ Mais Derrotas</td><td>${maisDerrota.nome}</td></tr>
+<tr><td>🏆 Mais Vitórias</td><td>${maisVitoria.nome}</td></tr>
+`
+
+}
+
+renderTabela()
+renderGrafico()
+renderBolaOuro()
+renderArtilheiros()
+renderProb()
+renderDesempenho()
+
+</script>
+
+</body>
+</html>
+```
